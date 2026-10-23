@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#fafaf8">
-  <meta name="description" content="文章や名前から3〜4文字の略称をランダムに生成します。漢字の読みは自動推定します。">
+  <meta name="description" content="文章や名前から3〜4文字の略称をランダムに生成します。漢字も入力されたまま使います。">
   <title>略称メーカー</title>
   <style>
     :root { color-scheme: light; font-family: -apple-system, BlinkMacSystemFont, "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Yu Gothic", Meiryo, sans-serif; }
@@ -21,7 +21,7 @@
     .source { display: block; width: 100%; min-height: 78px; max-height: 47svh; height: 88px; resize: none; overflow-y: auto; border: 1px solid #dcdcd6; border-radius: 12px; padding: 13px 15px; background: #fff; color: #222; outline: none; font-size: 20px; line-height: 1.48; overflow-wrap: anywhere; white-space: pre-wrap; scrollbar-width: thin; }
     .source:focus { border-color: #777771; box-shadow: 0 0 0 3px rgba(50,50,45,.06); }
     .source::placeholder { color: #a5a59f; }
-    .status { color: #85857d; font-size: 11px; line-height: 1.4; padding-top: 6px; }
+
     [hidden] { display: none !important; }
     .connector { color: #afafa9; font-size: 18px; text-align: center; line-height: 1; user-select: none; flex: none; }
     .result-panel { border-top: 1px solid #e1e1dc; padding-top: clamp(10px, 2svh, 19px); text-align: center; flex: none; }
@@ -58,7 +58,7 @@
       <div class="entry">
         <label class="field-label" for="source">元の文章・名前</label>
         <textarea id="source" class="source" rows="2" maxlength="5000" spellcheck="false" placeholder="略したい文章や名前を入力">マクドナルド</textarea>
-        <div id="status" class="status" role="status" aria-live="polite" hidden></div>
+
       </div>
       <div class="connector" aria-hidden="true">↓</div>
       <div class="result-panel">
@@ -77,18 +77,12 @@
       'use strict';
       const source = document.getElementById('source');
       const result = document.getElementById('result');
-      const status = document.getElementById('status');
       const generateButton = document.getElementById('generate');
       const copyButton = document.getElementById('copy');
-      const hasKanji = text => /\p{Script=Han}/u.test(text);
       const CLEAN_RE = /[\p{White_Space}\p{Punctuation}\p{Symbol}]/gu;
       const SMALL_RE = /^[ぁぃぅぇぉゃゅょゎァィゥェォャュョヮヵヶー]$/u;
       const TSU_RE = /^[っッ]$/u;
       let currentResult = '';
-      let tokenizerPromise = null;
-      let tokenizerUnavailable = false;
-      let readyTokenizer = null;
-      let generationSerial = 0;
       let inputTimer = null;
       let copyReset;
 
@@ -115,53 +109,6 @@
         }
         source.style.height = Math.max(minimum, Math.min(limit, source.scrollHeight + 2)) + 'px';
       };
-
-      const showStatus = text => {
-        status.hidden = !text;
-        status.textContent = text;
-      };
-
-      // Kuromoji's reading is in katakana. The browser fetches its dictionary once.
-      // Kanji readings are estimated locally, not sent to a text-conversion API.
-      const loadTokenizer = () => {
-        if (tokenizerPromise) return tokenizerPromise;
-        tokenizerPromise = new Promise((resolve, reject) => {
-          let completed = false;
-          const fail = error => {
-            if (completed) return;
-            completed = true;
-            reject(error || new Error('Japanese dictionary unavailable'));
-          };
-          const succeed = tokenizer => {
-            if (completed) return;
-            completed = true;
-            resolve(tokenizer);
-          };
-          const timeout = setTimeout(() => fail(new Error('Dictionary timed out')), 20000);
-          const finish = fn => value => { clearTimeout(timeout); fn(value); };
-          const start = () => {
-            if (!window.kuromoji) return finish(fail)(new Error('Dictionary script unavailable'));
-            try {
-              window.kuromoji.builder({ dicPath: 'https://cdn.jsdelivr.net/npm/kuromoji@0.1.2/dict/' })
-                .build((error, tokenizer) => error ? finish(fail)(error) : finish(succeed)(tokenizer));
-            } catch (error) { finish(fail)(error); }
-          };
-          if (window.kuromoji) return start();
-          const script = document.createElement('script');
-          script.src = 'https://cdn.jsdelivr.net/npm/kuromoji@0.1.2/build/kuromoji.js';
-          script.async = true;
-          script.onload = start;
-          script.onerror = () => finish(fail)(new Error('Dictionary script could not load'));
-          document.head.appendChild(script);
-        }).catch(error => { tokenizerUnavailable = true; throw error; });
-        return tokenizerPromise;
-      };
-
-      const toReading = (text, tokenizer) => tokenizer.tokenize(text).map(token => {
-        // Punctuation is stripped when the final graphemes are prepared.
-        if (token.reading && token.reading !== '*') return token.reading;
-        return token.surface_form;
-      }).join('');
 
       const drawCandidate = chars => {
         const size = chars.length >= 4 ? 3 + Math.floor(Math.random() * 2) : 3;
@@ -205,43 +152,8 @@
         copyButton.disabled = false;
       };
 
-      async function generate() {
-        const serial = ++generationSerial;
-        const text = source.value;
-        const originalChars = segment(text);
-
-        if (!hasKanji(text)) {
-          showStatus('');
-          displayFromChars(originalChars);
-          return;
-        }
-
-        // Never block the UI waiting for a remote dictionary.
-        // Display a valid abbreviation instantly, then upgrade it to a kana
-        // result if/when the Japanese dictionary becomes available.
-        if (readyTokenizer) {
-          showStatus('漢字の読みは自動推定です。固有名詞は読み違う場合があります。');
-          displayFromChars(segment(toReading(text, readyTokenizer)));
-          return;
-        }
-
-        displayFromChars(originalChars);
-        if (tokenizerUnavailable) {
-          showStatus('読みの辞書に接続できないため、漢字のまま抽選しています。');
-          return;
-        }
-
-        showStatus('漢字の読みを確認中。抽選はそのまま使えます。');
-        try {
-          const tokenizer = await loadTokenizer();
-          readyTokenizer = tokenizer;
-          if (serial !== generationSerial) return;
-          showStatus('漢字の読みは自動推定です。固有名詞は読み違う場合があります。');
-          displayFromChars(segment(toReading(text, tokenizer)));
-        } catch (error) {
-          if (serial !== generationSerial) return;
-          showStatus('読みの辞書に接続できないため、漢字のまま抽選しています。');
-        }
+      function generate() {
+        displayFromChars(segment(source.value));
       }
 
       source.addEventListener('input', () => {
