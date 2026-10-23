@@ -28,7 +28,9 @@
     .result-label { color: #77776f; font-size: 12px; font-weight: 700; letter-spacing: .08em; }
     .result { min-height: 1.42em; display: grid; place-items: center; color: #1f1f1d; font-size: clamp(48px, 12vw, 78px); font-weight: 800; letter-spacing: .05em; line-height: 1.42; overflow-wrap: anywhere; font-variant-east-asian: proportional-width; }
     .result.is-placeholder { font-size: clamp(16px, 3.8vw, 22px); font-weight: 500; letter-spacing: normal; color: #95958e; }
-    .actions { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 7px; flex: none; }
+    .actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; flex: none; }
+    .actions .primary { grid-column: 1 / -1; }
+    .actions .secondary { width: 100%; }
     .primary, .secondary { border-radius: 11px; height: 50px; border: 1px solid transparent; font-size: clamp(12px, 3.5vw, 14px); font-weight: 700; white-space: nowrap; transition: background-color .14s ease, transform .1s ease; }
     .primary { color: #fff; background: #232321; }
     .primary:hover:not(:disabled) { background: #444440; }
