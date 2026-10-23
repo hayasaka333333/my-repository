@@ -428,6 +428,9 @@
         const cardY = 72;
         const cardW = width - 144;
         const cardH = height - 144;
+        const innerLeft = cardX + 44;
+        const innerRight = cardX + cardW - 44;
+        const innerWidth = innerRight - innerLeft;
 
         ctx.fillStyle = '#ffffff';
         ctx.strokeStyle = '#dcdcd6';
@@ -438,40 +441,62 @@
 
         ctx.fillStyle = '#656560';
         ctx.font = '700 34px -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic", sans-serif';
-        ctx.fillText('略称メーカー', cardX + 44, cardY + 62);
+        ctx.fillText('略称メーカー', innerLeft, cardY + 62);
 
         ctx.fillStyle = '#7b7b75';
         ctx.font = '700 28px -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic", sans-serif';
-        ctx.fillText('元の文章・名前', cardX + 44, cardY + 126);
-
-        ctx.fillStyle = '#232321';
-        ctx.font = '500 40px -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic", sans-serif';
-        const originalLines = wrapTextByChars(ctx, getOriginalText() || ' ', cardW - 88, 6);
-        originalLines.forEach((line, index) => {
-          ctx.fillText(line, cardX + 44, cardY + 190 + index * 52);
-        });
+        ctx.fillText('元の文章・名前', innerLeft, cardY + 126);
 
         const dividerY = cardY + 560;
+        const originalTop = cardY + 150;
+        const originalBottom = dividerY - 36;
+        const originalHeight = originalBottom - originalTop;
+        const originalText = getOriginalText() || ' ';
+
+        let originalFontSize = 68;
+        let originalLineHeight = 82;
+        let originalLines = [];
+        while (originalFontSize >= 40) {
+          ctx.font = '600 ' + originalFontSize + 'px -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic", sans-serif';
+          originalLineHeight = Math.round(originalFontSize * 1.34);
+          const maxLines = Math.max(3, Math.floor(originalHeight / originalLineHeight));
+          originalLines = wrapTextByChars(ctx, originalText, innerWidth, maxLines);
+          if (originalLines.length * originalLineHeight <= originalHeight) break;
+          originalFontSize -= 4;
+        }
+
+        ctx.fillStyle = '#232321';
+        ctx.font = '600 ' + originalFontSize + 'px -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        const originalBlockHeight = originalLines.length * originalLineHeight;
+        const originalStartY = originalTop + (originalHeight - originalBlockHeight) / 2 + originalLineHeight / 2;
+        originalLines.forEach((line, index) => {
+          ctx.fillText(line, cardX + cardW / 2, originalStartY + index * originalLineHeight);
+        });
+
         ctx.strokeStyle = '#e6e6e1';
         ctx.lineWidth = 2;
         ctx.beginPath();
-        ctx.moveTo(cardX + 44, dividerY);
-        ctx.lineTo(cardX + cardW - 44, dividerY);
+        ctx.moveTo(innerLeft, dividerY);
+        ctx.lineTo(innerRight, dividerY);
         ctx.stroke();
 
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'alphabetic';
         ctx.fillStyle = '#7b7b75';
         ctx.font = '700 28px -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic", sans-serif';
-        ctx.fillText('略称', cardX + 44, dividerY + 68);
+        ctx.fillText('略称', innerLeft, dividerY + 68);
 
         ctx.fillStyle = '#1f1f1d';
-        ctx.font = '800 132px -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic", sans-serif';
+        ctx.font = '800 148px -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic", sans-serif';
         const resultText = currentResult || '---';
         const resultWidth = ctx.measureText(resultText).width;
-        ctx.fillText(resultText, Math.max(cardX + 44, cardX + (cardW - resultWidth) / 2), dividerY + 230);
+        ctx.fillText(resultText, Math.max(innerLeft, cardX + (cardW - resultWidth) / 2), dividerY + 242);
 
         ctx.fillStyle = '#8f8f89';
         ctx.font = '500 24px -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic", sans-serif';
-        ctx.fillText(SITE_URL, cardX + 44, cardY + cardH - 42);
+        ctx.fillText(SITE_URL, innerLeft, cardY + cardH - 42);
 
         return canvas;
       };
