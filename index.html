@@ -1,0 +1,282 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#fafaf8">
+  <meta name="description" content="文章や名前から3〜4文字の略称をランダムに生成します。漢字の読みは自動推定します。">
+  <title>略称メーカー</title>
+  <style>
+    :root { color-scheme: light; font-family: -apple-system, BlinkMacSystemFont, "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Yu Gothic", Meiryo, sans-serif; }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; width: 100%; }
+    body { background: #fafaf8; color: #232321; }
+    button, textarea { font: inherit; }
+    button { cursor: pointer; }
+    .page { width: min(100%, 690px); height: 100svh; min-height: 0; margin: 0 auto; padding: clamp(15px, 3.2svh, 30px) 20px 14px; display: flex; flex-direction: column; gap: 0; }
+    .brand { color: #656560; letter-spacing: .055em; font-weight: 750; font-size: 13px; flex: none; }
+    .workspace { flex: 1; min-height: 0; display: flex; flex-direction: column; justify-content: center; gap: clamp(10px, 2.1svh, 18px); padding: 8px 0; }
+    .entry { min-height: 0; }
+    .field-label { display: block; font-size: 13px; font-weight: 700; margin-bottom: 9px; color: #575752; }
+    .source { display: block; width: 100%; min-height: 78px; max-height: 47svh; height: 88px; resize: none; overflow-y: auto; border: 1px solid #dcdcd6; border-radius: 12px; padding: 13px 15px; background: #fff; color: #222; outline: none; font-size: 20px; line-height: 1.48; overflow-wrap: anywhere; white-space: pre-wrap; scrollbar-width: thin; }
+    .source:focus { border-color: #777771; box-shadow: 0 0 0 3px rgba(50,50,45,.06); }
+    .source::placeholder { color: #a5a59f; }
+    .status { color: #85857d; font-size: 11px; line-height: 1.4; padding-top: 6px; }
+    [hidden] { display: none !important; }
+    .connector { color: #afafa9; font-size: 18px; text-align: center; line-height: 1; user-select: none; flex: none; }
+    .result-panel { border-top: 1px solid #e1e1dc; padding-top: clamp(10px, 2svh, 19px); text-align: center; flex: none; }
+    .result-label { color: #77776f; font-size: 12px; font-weight: 700; letter-spacing: .08em; }
+    .result { min-height: 1.42em; display: grid; place-items: center; color: #1f1f1d; font-size: clamp(48px, 12vw, 78px); font-weight: 800; letter-spacing: .05em; line-height: 1.42; overflow-wrap: anywhere; font-variant-east-asian: proportional-width; }
+    .result.is-placeholder { font-size: clamp(16px, 3.8vw, 22px); font-weight: 500; letter-spacing: normal; color: #95958e; }
+    .actions { display: grid; grid-template-columns: 1fr auto; gap: 9px; flex: none; }
+    .primary, .secondary { border-radius: 11px; height: 50px; border: 1px solid transparent; font-size: 14px; font-weight: 700; transition: background-color .14s ease, transform .1s ease; }
+    .primary { color: #fff; background: #232321; }
+    .primary:hover:not(:disabled) { background: #444440; }
+    .primary:active:not(:disabled), .secondary:active:not(:disabled) { transform: scale(.985); }
+    .secondary { color: #383834; background: #fff; border-color: #dcdcd6; padding: 0 18px; }
+    .secondary:hover:not(:disabled) { background: #f0f0ed; }
+    button:disabled { opacity: .42; cursor: not-allowed; }
+    button:focus-visible { outline: 3px solid #9c9c94; outline-offset: 3px; }
+    .footer { color: #96968e; text-align: center; font-size: 11px; line-height: 1.35; flex: none; padding-top: 6px; }
+    @media (max-height: 600px) {
+      .page { padding-top: 12px; padding-bottom: 9px; }
+      .workspace { gap: 8px; padding: 5px 0; }
+      .source { min-height: 65px; padding: 10px 12px; }
+      .field-label { margin-bottom: 6px; }
+      .result-panel { padding-top: 9px; }
+      .result { font-size: clamp(40px, 10svh, 66px); min-height: 1.25em; }
+      .actions button { height: 43px; }
+      .footer { font-size: 10px; }
+    }
+    @media (prefers-reduced-motion: reduce) { .primary, .secondary { transition: none; } }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header class="brand">略称メーカー</header>
+    <section class="workspace" aria-label="略称をつくる">
+      <div class="entry">
+        <label class="field-label" for="source">元の文章・名前</label>
+        <textarea id="source" class="source" rows="2" maxlength="5000" spellcheck="false" placeholder="略したい文章や名前を入力">マクドナルド</textarea>
+        <div id="status" class="status" role="status" aria-live="polite" hidden></div>
+      </div>
+      <div class="connector" aria-hidden="true">↓</div>
+      <div class="result-panel">
+        <div class="result-label">略称</div>
+        <output id="result" class="result" aria-live="polite" aria-atomic="true">マドド</output>
+      </div>
+      <div class="actions">
+        <button id="generate" class="primary" type="button">もう一度つくる ↻</button>
+        <button id="copy" class="secondary" type="button">コピー</button>
+      </div>
+    </section>
+    <footer class="footer">3〜4文字をランダムに抽選。文字の順番は変えません。</footer>
+  </main>
+  <script>
+    (() => {
+      'use strict';
+      const source = document.getElementById('source');
+      const result = document.getElementById('result');
+      const status = document.getElementById('status');
+      const generateButton = document.getElementById('generate');
+      const copyButton = document.getElementById('copy');
+      const hasKanji = text => /\p{Script=Han}/u.test(text);
+      const CLEAN_RE = /[\p{White_Space}\p{Punctuation}\p{Symbol}]/gu;
+      const SMALL_RE = /^[ぁぃぅぇぉゃゅょゎァィゥェォャュョヮヵヶー]$/u;
+      const TSU_RE = /^[っッ]$/u;
+      let currentResult = '';
+      let tokenizerPromise = null;
+      let tokenizerUnavailable = false;
+      let readyTokenizer = null;
+      let generationSerial = 0;
+      let inputTimer = null;
+      let copyReset;
+
+      const segment = text => {
+        const normalized = text.normalize('NFC').replace(CLEAN_RE, '');
+        if (typeof Intl.Segmenter === 'function') {
+          return [...new Intl.Segmenter('ja', { granularity: 'grapheme' }).segment(normalized)].map(item => item.segment);
+        }
+        return Array.from(normalized);
+      };
+
+      // Keep the source visible. For long input, first expand vertically,
+      // then decrease the font size, and scroll only when the screen is too small.
+      const fitSource = () => {
+        const h = window.innerHeight;
+        const limit = Math.max(72, Math.min(365, h * (h < 600 ? .43 : .47)));
+        const minimum = h < 600 ? 65 : 78;
+        let size = source.value.length > 160 ? 16 : 20;
+        while (size >= 11) {
+          source.style.fontSize = size + 'px';
+          source.style.height = minimum + 'px';
+          if (source.scrollHeight <= limit || size === 11) break;
+          size -= 1;
+        }
+        source.style.height = Math.max(minimum, Math.min(limit, source.scrollHeight + 2)) + 'px';
+      };
+
+      const showStatus = text => {
+        status.hidden = !text;
+        status.textContent = text;
+      };
+
+      // Kuromoji's reading is in katakana. The browser fetches its dictionary once.
+      // Kanji readings are estimated locally, not sent to a text-conversion API.
+      const loadTokenizer = () => {
+        if (tokenizerPromise) return tokenizerPromise;
+        tokenizerPromise = new Promise((resolve, reject) => {
+          let completed = false;
+          const fail = error => {
+            if (completed) return;
+            completed = true;
+            reject(error || new Error('Japanese dictionary unavailable'));
+          };
+          const succeed = tokenizer => {
+            if (completed) return;
+            completed = true;
+            resolve(tokenizer);
+          };
+          const timeout = setTimeout(() => fail(new Error('Dictionary timed out')), 20000);
+          const finish = fn => value => { clearTimeout(timeout); fn(value); };
+          const start = () => {
+            if (!window.kuromoji) return finish(fail)(new Error('Dictionary script unavailable'));
+            try {
+              window.kuromoji.builder({ dicPath: 'https://cdn.jsdelivr.net/npm/kuromoji@0.1.2/dict/' })
+                .build((error, tokenizer) => error ? finish(fail)(error) : finish(succeed)(tokenizer));
+            } catch (error) { finish(fail)(error); }
+          };
+          if (window.kuromoji) return start();
+          const script = document.createElement('script');
+          script.src = 'https://cdn.jsdelivr.net/npm/kuromoji@0.1.2/build/kuromoji.js';
+          script.async = true;
+          script.onload = start;
+          script.onerror = () => finish(fail)(new Error('Dictionary script could not load'));
+          document.head.appendChild(script);
+        }).catch(error => { tokenizerUnavailable = true; throw error; });
+        return tokenizerPromise;
+      };
+
+      const toReading = (text, tokenizer) => tokenizer.tokenize(text).map(token => {
+        // Punctuation is stripped when the final graphemes are prepared.
+        if (token.reading && token.reading !== '*') return token.reading;
+        return token.surface_form;
+      }).join('');
+
+      const drawCandidate = chars => {
+        const size = chars.length >= 4 ? 3 + Math.floor(Math.random() * 2) : 3;
+        const picks = new Set();
+        while (picks.size < size) picks.add(Math.floor(Math.random() * chars.length));
+        const indices = [...picks].sort((a, b) => a - b);
+        return { indices, text: indices.map(i => chars[i]).join('') };
+      };
+
+      const isReadable = (chars, indices) => indices.every((index, position) => {
+        const char = chars[index];
+        if (SMALL_RE.test(char)) return position > 0 && indices[position - 1] === index - 1;
+        if (TSU_RE.test(char)) return position < indices.length - 1 && indices[position + 1] === index + 1;
+        return true;
+      });
+
+      const displayFromChars = chars => {
+        if (chars.length < 3) {
+          currentResult = '';
+          result.textContent = chars.length ? '3文字以上入力してください' : 'ここに略称が表示されます';
+          result.classList.add('is-placeholder');
+          generateButton.disabled = true;
+          copyButton.disabled = true;
+          return;
+        }
+        const prior = currentResult;
+        let chosen = null;
+        let alternate = null;
+        for (let attempt = 0; attempt < 220; attempt++) {
+          const proposal = drawCandidate(chars);
+          if (isReadable(chars, proposal.indices)) {
+            if (!alternate) alternate = proposal;
+            if (proposal.text !== prior) { chosen = proposal; break; }
+          }
+        }
+        chosen ||= alternate || drawCandidate(chars);
+        currentResult = chosen.text;
+        result.textContent = currentResult;
+        result.classList.remove('is-placeholder');
+        generateButton.disabled = false;
+        copyButton.disabled = false;
+      };
+
+      async function generate() {
+        const serial = ++generationSerial;
+        const text = source.value;
+        const originalChars = segment(text);
+
+        if (!hasKanji(text)) {
+          showStatus('');
+          displayFromChars(originalChars);
+          return;
+        }
+
+        // Never block the UI waiting for a remote dictionary.
+        // Display a valid abbreviation instantly, then upgrade it to a kana
+        // result if/when the Japanese dictionary becomes available.
+        if (readyTokenizer) {
+          showStatus('漢字の読みは自動推定です。固有名詞は読み違う場合があります。');
+          displayFromChars(segment(toReading(text, readyTokenizer)));
+          return;
+        }
+
+        displayFromChars(originalChars);
+        if (tokenizerUnavailable) {
+          showStatus('読みの辞書に接続できないため、漢字のまま抽選しています。');
+          return;
+        }
+
+        showStatus('漢字の読みを確認中。抽選はそのまま使えます。');
+        try {
+          const tokenizer = await loadTokenizer();
+          readyTokenizer = tokenizer;
+          if (serial !== generationSerial) return;
+          showStatus('漢字の読みは自動推定です。固有名詞は読み違う場合があります。');
+          displayFromChars(segment(toReading(text, tokenizer)));
+        } catch (error) {
+          if (serial !== generationSerial) return;
+          showStatus('読みの辞書に接続できないため、漢字のまま抽選しています。');
+        }
+      }
+
+      source.addEventListener('input', () => {
+        fitSource();
+        clearTimeout(inputTimer);
+        // Only wait briefly for IME typing; the latest edit wins.
+        inputTimer = setTimeout(generate, 160);
+      });
+      source.addEventListener('compositionend', () => { clearTimeout(inputTimer); generate(); });
+      generateButton.addEventListener('click', () => { clearTimeout(inputTimer); generate(); });
+      window.addEventListener('resize', fitSource);
+      copyButton.addEventListener('click', async () => {
+        if (!currentResult) return;
+        try {
+          if (navigator.clipboard && window.isSecureContext) {
+            await navigator.clipboard.writeText(currentResult);
+          } else {
+            const temp = document.createElement('textarea');
+            temp.value = currentResult;
+            temp.style.position = 'fixed';
+            temp.style.opacity = '0';
+            document.body.appendChild(temp);
+            temp.select();
+            const copied = document.execCommand('copy');
+            temp.remove();
+            if (!copied) throw new Error('Copy unavailable');
+          }
+          copyButton.textContent = 'コピー済み';
+        } catch { copyButton.textContent = 'コピー失敗'; }
+        clearTimeout(copyReset);
+        copyReset = setTimeout(() => { copyButton.textContent = 'コピー'; }, 1500);
+      });
+      fitSource();
+      generate();
+    })();
+  </script>
+</body>
+</html>
