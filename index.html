@@ -4,46 +4,207 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#fafaf8">
-  <meta name="description" content="文章や名前から3〜4文字の略称をランダムに生成します。漢字も入力されたまま使います。">
+  <meta name="description" content="文章や名前から3〜4文字の略称をランダムに生成します。">
   <title>略称メーカー</title>
   <style>
-    :root { color-scheme: light; font-family: -apple-system, BlinkMacSystemFont, "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Yu Gothic", Meiryo, sans-serif; }
+    :root {
+      color-scheme: light;
+      font-family: -apple-system, BlinkMacSystemFont, "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Yu Gothic", Meiryo, sans-serif;
+    }
     * { box-sizing: border-box; }
     html, body { margin: 0; width: 100%; }
     body { background: #fafaf8; color: #232321; }
-    button, textarea { font: inherit; }
-    button { cursor: pointer; }
-    .page { width: min(100%, 690px); height: 100svh; min-height: 0; margin: 0 auto; padding: clamp(15px, 3.2svh, 30px) 20px 14px; display: flex; flex-direction: column; gap: 0; }
-    .brand { color: #656560; letter-spacing: .055em; font-weight: 750; font-size: 13px; flex: none; }
-    .workspace { flex: 1; min-height: 0; display: flex; flex-direction: column; justify-content: center; gap: clamp(10px, 2.1svh, 18px); padding: 8px 0; }
-    .entry { min-height: 0; }
-    .field-label { display: block; font-size: 13px; font-weight: 700; margin-bottom: 9px; color: #575752; }
-    .source { display: block; width: 100%; min-height: 78px; max-height: 47svh; height: 88px; resize: none; overflow-y: auto; border: 1px solid #dcdcd6; border-radius: 12px; padding: 13px 15px; background: #fff; color: #222; outline: none; font-size: 20px; line-height: 1.48; overflow-wrap: anywhere; white-space: pre-wrap; scrollbar-width: thin; }
-    .source:focus { border-color: #777771; box-shadow: 0 0 0 3px rgba(50,50,45,.06); }
-    .source::placeholder { color: #a5a59f; }
+    button, textarea, a { font: inherit; }
+    button, a { cursor: pointer; }
 
-    [hidden] { display: none !important; }
-    .connector { color: #afafa9; font-size: 18px; text-align: center; line-height: 1; user-select: none; flex: none; }
-    .result-panel { border-top: 1px solid #e1e1dc; padding-top: clamp(10px, 2svh, 19px); text-align: center; flex: none; }
-    .result-label { color: #77776f; font-size: 12px; font-weight: 700; letter-spacing: .08em; }
-    .result { min-height: 1.42em; display: grid; place-items: center; color: #1f1f1d; font-size: clamp(48px, 12vw, 78px); font-weight: 800; letter-spacing: .05em; line-height: 1.42; overflow-wrap: anywhere; font-variant-east-asian: proportional-width; }
-    .result.is-placeholder { font-size: clamp(16px, 3.8vw, 22px); font-weight: 500; letter-spacing: normal; color: #95958e; }
-    .actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; flex: none; }
+    .page {
+      width: min(100%, 690px);
+      min-height: 100svh;
+      margin: 0 auto;
+      padding: clamp(15px, 3.2svh, 30px) 20px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+    .brand {
+      color: #656560;
+      letter-spacing: .055em;
+      font-weight: 750;
+      font-size: 13px;
+      flex: none;
+    }
+    .workspace {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: clamp(10px, 2.1svh, 18px);
+      padding: 8px 0;
+    }
+    .entry { min-height: 0; }
+    .field-label {
+      display: block;
+      font-size: 13px;
+      font-weight: 700;
+      margin-bottom: 9px;
+      color: #575752;
+    }
+    .source {
+      display: block;
+      width: 100%;
+      min-height: 78px;
+      max-height: 47svh;
+      height: 88px;
+      resize: none;
+      overflow-y: auto;
+      border: 1px solid #dcdcd6;
+      border-radius: 12px;
+      padding: 13px 15px;
+      background: #fff;
+      color: #222;
+      outline: none;
+      font-size: 20px;
+      line-height: 1.48;
+      overflow-wrap: anywhere;
+      white-space: pre-wrap;
+      scrollbar-width: thin;
+    }
+    .source:focus {
+      border-color: #777771;
+      box-shadow: 0 0 0 3px rgba(50,50,45,.06);
+    }
+    .source::placeholder { color: #a5a59f; }
+    .connector {
+      color: #afafa9;
+      font-size: 18px;
+      text-align: center;
+      line-height: 1;
+      user-select: none;
+      flex: none;
+    }
+    .result-panel {
+      border-top: 1px solid #e1e1dc;
+      padding-top: clamp(10px, 2svh, 19px);
+      text-align: center;
+      flex: none;
+    }
+    .result-label {
+      color: #77776f;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: .08em;
+    }
+    .result {
+      min-height: 1.42em;
+      display: grid;
+      place-items: center;
+      color: #1f1f1d;
+      font-size: clamp(48px, 12vw, 78px);
+      font-weight: 800;
+      letter-spacing: .05em;
+      line-height: 1.42;
+      overflow-wrap: anywhere;
+      font-variant-east-asian: proportional-width;
+    }
+    .result.is-placeholder {
+      font-size: clamp(16px, 3.8vw, 22px);
+      font-weight: 500;
+      letter-spacing: normal;
+      color: #95958e;
+    }
+    .actions {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 9px;
+      flex: none;
+    }
     .actions .primary { grid-column: 1 / -1; }
     .actions .secondary { width: 100%; }
-    .primary, .secondary { border-radius: 11px; height: 50px; border: 1px solid transparent; font-size: clamp(12px, 3.5vw, 14px); font-weight: 700; white-space: nowrap; transition: background-color .14s ease, transform .1s ease; }
-    .primary { color: #fff; background: #232321; }
+    .utility-row {
+      margin-top: 8px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .primary, .secondary, .tertiary {
+      border-radius: 11px;
+      height: 50px;
+      border: 1px solid transparent;
+      font-size: clamp(12px, 3.5vw, 14px);
+      font-weight: 700;
+      white-space: nowrap;
+      transition: background-color .14s ease, transform .1s ease, color .14s ease;
+      text-decoration: none;
+    }
+    .primary {
+      color: #fff;
+      background: #232321;
+    }
     .primary:hover:not(:disabled) { background: #444440; }
-    .primary:active:not(:disabled), .secondary:active:not(:disabled) { transform: scale(.985); }
-    .secondary { color: #383834; background: #fff; border-color: #dcdcd6; padding: 0 12px; }
+    .secondary {
+      color: #383834;
+      background: #fff;
+      border-color: #dcdcd6;
+      padding: 0 12px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
     .secondary:hover:not(:disabled) { background: #f0f0ed; }
-    .share { display: flex; align-items: center; justify-content: center; text-decoration: none; }
-    .share.is-disabled { opacity: .42; pointer-events: none; cursor: not-allowed; }
-    .share:hover:not(.is-disabled) { background: #f0f0ed; }
-    .share:active:not(.is-disabled) { transform: scale(.985); }
-    button:disabled { opacity: .42; cursor: not-allowed; }
-    button:focus-visible { outline: 3px solid #9c9c94; outline-offset: 3px; }
-    .footer { color: #96968e; text-align: center; font-size: 11px; line-height: 1.35; flex: none; padding-top: 6px; }
+    .tertiary {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      height: 36px;
+      padding: 0 12px;
+      border-color: transparent;
+      background: transparent;
+      color: #62625c;
+    }
+    .tertiary:hover:not(:disabled) {
+      background: rgba(35,35,33,.05);
+      color: #232321;
+    }
+    .primary:active:not(:disabled),
+    .secondary:active:not(:disabled),
+    .tertiary:active:not(:disabled) { transform: scale(.985); }
+    button:disabled, .disabled {
+      opacity: .42;
+      cursor: not-allowed;
+      pointer-events: none;
+    }
+    button:focus-visible, a:focus-visible {
+      outline: 3px solid #9c9c94;
+      outline-offset: 3px;
+    }
+    .share-note {
+      color: #96968e;
+      text-align: center;
+      font-size: 11px;
+      line-height: 1.45;
+      padding-top: 8px;
+      flex: none;
+    }
+    .footer {
+      color: #96968e;
+      text-align: center;
+      font-size: 11px;
+      line-height: 1.35;
+      flex: none;
+      padding-top: 6px;
+    }
+    .visually-hidden {
+      position: absolute !important;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
     @media (max-height: 600px) {
       .page { padding-top: 12px; padding-bottom: 9px; }
       .workspace { gap: 8px; padding: 5px 0; }
@@ -51,48 +212,74 @@
       .field-label { margin-bottom: 6px; }
       .result-panel { padding-top: 9px; }
       .result { font-size: clamp(40px, 10svh, 66px); min-height: 1.25em; }
-      .actions button { height: 43px; }
-      .footer { font-size: 10px; }
+      .primary, .secondary { height: 43px; }
+      .tertiary { height: 32px; }
+      .footer, .share-note { font-size: 10px; }
     }
-    @media (prefers-reduced-motion: reduce) { .primary, .secondary { transition: none; } }
+    @media (prefers-reduced-motion: reduce) {
+      .primary, .secondary, .tertiary { transition: none; }
+    }
   </style>
 </head>
 <body>
   <main class="page">
     <header class="brand">略称メーカー</header>
+
     <section class="workspace" aria-label="略称をつくる">
       <div class="entry">
         <label class="field-label" for="source">元の文章・名前</label>
         <textarea id="source" class="source" rows="2" maxlength="5000" spellcheck="false" placeholder="略したい文章や名前を入力">マクドナルド</textarea>
-
       </div>
+
       <div class="connector" aria-hidden="true">↓</div>
+
       <div class="result-panel">
         <div class="result-label">略称</div>
         <output id="result" class="result" aria-live="polite" aria-atomic="true">マドド</output>
       </div>
+
       <div class="actions">
-        <button id="generate" class="primary" type="button">もう一度 ↻</button>
+        <button id="generate" class="primary" type="button">もう一度つくる ↻</button>
         <button id="copy" class="secondary" type="button">コピー</button>
-        <a id="share" class="secondary share is-disabled" target="_blank" rel="noopener noreferrer" aria-disabled="true" aria-label="Xで共有（投稿画面を開く）">Xで共有</a>
+        <button id="share" class="secondary" type="button">Xで共有</button>
+      </div>
+
+      <div class="utility-row">
+        <button id="save-image" class="tertiary" type="button">画像を保存</button>
       </div>
     </section>
+
+    <div class="share-note" id="share-note">
+      対応ブラウザでは画像つき共有を試します。非対応時はテキストだけのX投稿画面を開きます。
+    </div>
+
     <footer class="footer">3〜4文字をランダムに抽選。文字の順番は変えません。</footer>
+    <canvas id="share-canvas" class="visually-hidden" width="1200" height="1200" aria-hidden="true"></canvas>
   </main>
+
   <script>
     (() => {
       'use strict';
+
+      const SITE_URL = 'https://ryakusho-maker.vercel.app/';
       const source = document.getElementById('source');
       const result = document.getElementById('result');
       const generateButton = document.getElementById('generate');
       const copyButton = document.getElementById('copy');
-      const shareLink = document.getElementById('share');
+      const shareButton = document.getElementById('share');
+      const saveImageButton = document.getElementById('save-image');
+      const canvas = document.getElementById('share-canvas');
+      const shareNote = document.getElementById('share-note');
+
       const CLEAN_RE = /[\p{White_Space}\p{Punctuation}\p{Symbol}]/gu;
       const SMALL_RE = /^[ぁぃぅぇぉゃゅょゎァィゥェォャュョヮヵヶー]$/u;
       const TSU_RE = /^[っッ]$/u;
+
       let currentResult = '';
       let inputTimer = null;
       let copyReset;
+      let shareReset;
+      let saveReset;
 
       const segment = text => {
         const normalized = text.normalize('NFC').replace(CLEAN_RE, '');
@@ -102,8 +289,6 @@
         return Array.from(normalized);
       };
 
-      // Keep the source visible. For long input, first expand vertically,
-      // then decrease the font size, and scroll only when the screen is too small.
       const fitSource = () => {
         const h = window.innerHeight;
         const limit = Math.max(72, Math.min(365, h * (h < 600 ? .43 : .47)));
@@ -133,23 +318,11 @@
         return true;
       });
 
-      // Create an editable X draft, truncating only the shared text (not the input).
-      const updateShareLink = () => {
-        if (!currentResult) {
-          shareLink.removeAttribute('href');
-          shareLink.setAttribute('aria-disabled', 'true');
-          shareLink.classList.add('is-disabled');
-          return;
-        }
-        const original = source.value.replace(/\s+/g, ' ').trim();
-        const units = Array.from(original);
-        const excerpt = units.length > 70 ? units.slice(0, 70).join('') + '…' : original;
-        const message = '「' + excerpt + '」→「' + currentResult + '」\n#略称メーカー';
-        const url = 'https://x.com/intent/tweet?text=' + encodeURIComponent(message)
-          + '&url=' + encodeURIComponent('https://ryakusho-maker.vercel.app/');
-        shareLink.href = url;
-        shareLink.removeAttribute('aria-disabled');
-        shareLink.classList.remove('is-disabled');
+      const setActionAvailability = enabled => {
+        generateButton.disabled = !enabled;
+        copyButton.disabled = !enabled;
+        shareButton.disabled = !enabled;
+        saveImageButton.disabled = !enabled;
       };
 
       const displayFromChars = chars => {
@@ -157,11 +330,10 @@
           currentResult = '';
           result.textContent = chars.length ? '3文字以上入力してください' : 'ここに略称が表示されます';
           result.classList.add('is-placeholder');
-          generateButton.disabled = true;
-          copyButton.disabled = true;
-          updateShareLink();
+          setActionAvailability(false);
           return;
         }
+
         const prior = currentResult;
         let chosen = null;
         let alternate = null;
@@ -169,31 +341,214 @@
           const proposal = drawCandidate(chars);
           if (isReadable(chars, proposal.indices)) {
             if (!alternate) alternate = proposal;
-            if (proposal.text !== prior) { chosen = proposal; break; }
+            if (proposal.text !== prior) {
+              chosen = proposal;
+              break;
+            }
           }
         }
         chosen ||= alternate || drawCandidate(chars);
+
         currentResult = chosen.text;
         result.textContent = currentResult;
         result.classList.remove('is-placeholder');
-        generateButton.disabled = false;
-        copyButton.disabled = false;
-        updateShareLink();
+        setActionAvailability(true);
       };
 
       function generate() {
         displayFromChars(segment(source.value));
       }
 
+      const getOriginalText = () => source.value.replace(/\s+/g, ' ').trim();
+
+      const getShareExcerpt = (limit = 70) => {
+        const text = getOriginalText();
+        const chars = Array.from(text);
+        if (chars.length <= limit) return text;
+        return chars.slice(0, limit).join('') + '…';
+      };
+
+      const getShareMessage = () => {
+        return '「' + getShareExcerpt() + '」→「' + currentResult + '」\n#略称メーカー\n' + SITE_URL;
+      };
+
+      const escapeFileName = value => {
+        const clean = (value || 'ryakusho').replace(/[\\/:*?"<>|]/g, '').trim();
+        return clean || 'ryakusho';
+      };
+
+      const wrapTextByChars = (ctx, text, maxWidth, maxLines) => {
+        const chars = Array.from(text);
+        const lines = [];
+        let line = '';
+        for (const char of chars) {
+          const test = line + char;
+          if (ctx.measureText(test).width <= maxWidth || line === '') {
+            line = test;
+          } else {
+            lines.push(line);
+            line = char;
+            if (lines.length === maxLines - 1) break;
+          }
+        }
+        if (lines.length < maxLines && line) lines.push(line);
+        if (lines.length === maxLines) {
+          const used = Array.from(lines.join('')).length;
+          if (used < chars.length) {
+            let last = lines[maxLines - 1];
+            while (last.length > 0 && ctx.measureText(last + '…').width > maxWidth) {
+              last = last.slice(0, -1);
+            }
+            lines[maxLines - 1] = last + '…';
+          }
+        }
+        return lines;
+      };
+
+      const roundRect = (ctx, x, y, width, height, radius) => {
+        ctx.beginPath();
+        ctx.moveTo(x + radius, y);
+        ctx.arcTo(x + width, y, x + width, y + height, radius);
+        ctx.arcTo(x + width, y + height, x, y + height, radius);
+        ctx.arcTo(x, y + height, x, y, radius);
+        ctx.arcTo(x, y, x + width, y, radius);
+        ctx.closePath();
+      };
+
+      const drawShareCard = () => {
+        const ctx = canvas.getContext('2d');
+        const width = canvas.width;
+        const height = canvas.height;
+
+        ctx.clearRect(0, 0, width, height);
+        ctx.fillStyle = '#fafaf8';
+        ctx.fillRect(0, 0, width, height);
+
+        const cardX = 72;
+        const cardY = 72;
+        const cardW = width - 144;
+        const cardH = height - 144;
+
+        ctx.fillStyle = '#ffffff';
+        ctx.strokeStyle = '#dcdcd6';
+        ctx.lineWidth = 2;
+        roundRect(ctx, cardX, cardY, cardW, cardH, 34);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = '#656560';
+        ctx.font = '700 34px -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic", sans-serif';
+        ctx.fillText('略称メーカー', cardX + 44, cardY + 62);
+
+        ctx.fillStyle = '#7b7b75';
+        ctx.font = '700 28px -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic", sans-serif';
+        ctx.fillText('元の文章・名前', cardX + 44, cardY + 126);
+
+        ctx.fillStyle = '#232321';
+        ctx.font = '500 40px -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic", sans-serif';
+        const originalLines = wrapTextByChars(ctx, getOriginalText() || ' ', cardW - 88, 6);
+        originalLines.forEach((line, index) => {
+          ctx.fillText(line, cardX + 44, cardY + 190 + index * 52);
+        });
+
+        const dividerY = cardY + 560;
+        ctx.strokeStyle = '#e6e6e1';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(cardX + 44, dividerY);
+        ctx.lineTo(cardX + cardW - 44, dividerY);
+        ctx.stroke();
+
+        ctx.fillStyle = '#7b7b75';
+        ctx.font = '700 28px -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic", sans-serif';
+        ctx.fillText('略称', cardX + 44, dividerY + 68);
+
+        ctx.fillStyle = '#1f1f1d';
+        ctx.font = '800 132px -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic", sans-serif';
+        const resultText = currentResult || '---';
+        const resultWidth = ctx.measureText(resultText).width;
+        ctx.fillText(resultText, Math.max(cardX + 44, cardX + (cardW - resultWidth) / 2), dividerY + 230);
+
+        ctx.fillStyle = '#8f8f89';
+        ctx.font = '500 24px -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic", sans-serif';
+        ctx.fillText(SITE_URL, cardX + 44, cardY + cardH - 42);
+
+        return canvas;
+      };
+
+      const canvasToBlob = targetCanvas => new Promise((resolve, reject) => {
+        if (targetCanvas.toBlob) {
+          targetCanvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('blob unavailable')), 'image/png');
+          return;
+        }
+        try {
+          const dataUrl = targetCanvas.toDataURL('image/png');
+          const base64 = dataUrl.split(',')[1];
+          const binary = atob(base64);
+          const bytes = new Uint8Array(binary.length);
+          for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+          resolve(new Blob([bytes], { type: 'image/png' }));
+        } catch (error) {
+          reject(error);
+        }
+      });
+
+      const buildShareFile = async () => {
+        const card = drawShareCard();
+        const blob = await canvasToBlob(card);
+        const fileName = escapeFileName(currentResult) + '.png';
+        return new File([blob], fileName, { type: 'image/png' });
+      };
+
+      const openXIntent = () => {
+        const intent = 'https://x.com/intent/tweet?text=' + encodeURIComponent(getShareMessage());
+        window.open(intent, '_blank', 'noopener,noreferrer');
+      };
+
+      const supportsFileShare = async () => {
+        if (!navigator.share || !navigator.canShare || !window.File) return false;
+        try {
+          const file = await buildShareFile();
+          return navigator.canShare({ files: [file] });
+        } catch {
+          return false;
+        }
+      };
+
+      const updateShareNote = async () => {
+        if (!currentResult) {
+          shareNote.textContent = '3文字以上入力すると共有できます。';
+          return;
+        }
+        const supported = await supportsFileShare();
+        shareNote.textContent = supported
+          ? 'この端末では、Xなどの共有先へ画像つき共有を試せます。'
+          : 'このブラウザでは画像の直接共有に未対応です。Xはテキスト共有、画像は保存して手動添付できます。';
+      };
+
       source.addEventListener('input', () => {
         fitSource();
         clearTimeout(inputTimer);
-        // Only wait briefly for IME typing; the latest edit wins.
-        inputTimer = setTimeout(generate, 160);
+        inputTimer = setTimeout(() => {
+          generate();
+          updateShareNote();
+        }, 160);
       });
-      source.addEventListener('compositionend', () => { clearTimeout(inputTimer); generate(); });
-      generateButton.addEventListener('click', () => { clearTimeout(inputTimer); generate(); });
+
+      source.addEventListener('compositionend', () => {
+        clearTimeout(inputTimer);
+        generate();
+        updateShareNote();
+      });
+
+      generateButton.addEventListener('click', () => {
+        clearTimeout(inputTimer);
+        generate();
+        updateShareNote();
+      });
+
       window.addEventListener('resize', fitSource);
+
       copyButton.addEventListener('click', async () => {
         if (!currentResult) return;
         try {
@@ -211,12 +566,59 @@
             if (!copied) throw new Error('Copy unavailable');
           }
           copyButton.textContent = 'コピー済み';
-        } catch { copyButton.textContent = 'コピー失敗'; }
+        } catch {
+          copyButton.textContent = 'コピー失敗';
+        }
         clearTimeout(copyReset);
         copyReset = setTimeout(() => { copyButton.textContent = 'コピー'; }, 1500);
       });
+
+      shareButton.addEventListener('click', async () => {
+        if (!currentResult) return;
+        try {
+          if (navigator.share && navigator.canShare && window.File) {
+            const file = await buildShareFile();
+            if (navigator.canShare({ files: [file] })) {
+              await navigator.share({
+                files: [file],
+                title: '略称メーカー',
+                text: getShareMessage()
+              });
+              shareButton.textContent = '共有しました';
+              clearTimeout(shareReset);
+              shareReset = setTimeout(() => { shareButton.textContent = 'Xで共有'; }, 1500);
+              return;
+            }
+          }
+        } catch (error) {
+          if (error && error.name === 'AbortError') return;
+        }
+        openXIntent();
+      });
+
+      saveImageButton.addEventListener('click', async () => {
+        if (!currentResult) return;
+        try {
+          const file = await buildShareFile();
+          const url = URL.createObjectURL(file);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = escapeFileName(currentResult) + '.png';
+          document.body.appendChild(link);
+          link.click();
+          link.remove();
+          setTimeout(() => URL.revokeObjectURL(url), 1200);
+          saveImageButton.textContent = '保存しました';
+        } catch {
+          saveImageButton.textContent = '保存失敗';
+        }
+        clearTimeout(saveReset);
+        saveReset = setTimeout(() => { saveImageButton.textContent = '画像を保存'; }, 1500);
+      });
+
       fitSource();
       generate();
+      updateShareNote();
     })();
   </script>
 </body>
