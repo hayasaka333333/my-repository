@@ -28,13 +28,17 @@
     .result-label { color: #77776f; font-size: 12px; font-weight: 700; letter-spacing: .08em; }
     .result { min-height: 1.42em; display: grid; place-items: center; color: #1f1f1d; font-size: clamp(48px, 12vw, 78px); font-weight: 800; letter-spacing: .05em; line-height: 1.42; overflow-wrap: anywhere; font-variant-east-asian: proportional-width; }
     .result.is-placeholder { font-size: clamp(16px, 3.8vw, 22px); font-weight: 500; letter-spacing: normal; color: #95958e; }
-    .actions { display: grid; grid-template-columns: 1fr auto; gap: 9px; flex: none; }
-    .primary, .secondary { border-radius: 11px; height: 50px; border: 1px solid transparent; font-size: 14px; font-weight: 700; transition: background-color .14s ease, transform .1s ease; }
+    .actions { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 7px; flex: none; }
+    .primary, .secondary { border-radius: 11px; height: 50px; border: 1px solid transparent; font-size: clamp(12px, 3.5vw, 14px); font-weight: 700; white-space: nowrap; transition: background-color .14s ease, transform .1s ease; }
     .primary { color: #fff; background: #232321; }
     .primary:hover:not(:disabled) { background: #444440; }
     .primary:active:not(:disabled), .secondary:active:not(:disabled) { transform: scale(.985); }
-    .secondary { color: #383834; background: #fff; border-color: #dcdcd6; padding: 0 18px; }
+    .secondary { color: #383834; background: #fff; border-color: #dcdcd6; padding: 0 12px; }
     .secondary:hover:not(:disabled) { background: #f0f0ed; }
+    .share { display: flex; align-items: center; justify-content: center; text-decoration: none; }
+    .share.is-disabled { opacity: .42; pointer-events: none; cursor: not-allowed; }
+    .share:hover:not(.is-disabled) { background: #f0f0ed; }
+    .share:active:not(.is-disabled) { transform: scale(.985); }
     button:disabled { opacity: .42; cursor: not-allowed; }
     button:focus-visible { outline: 3px solid #9c9c94; outline-offset: 3px; }
     .footer { color: #96968e; text-align: center; font-size: 11px; line-height: 1.35; flex: none; padding-top: 6px; }
@@ -66,8 +70,9 @@
         <output id="result" class="result" aria-live="polite" aria-atomic="true">マドド</output>
       </div>
       <div class="actions">
-        <button id="generate" class="primary" type="button">もう一度つくる ↻</button>
+        <button id="generate" class="primary" type="button">もう一度 ↻</button>
         <button id="copy" class="secondary" type="button">コピー</button>
+        <a id="share" class="secondary share is-disabled" target="_blank" rel="noopener noreferrer" aria-disabled="true" aria-label="Xで共有（投稿画面を開く）">Xで共有</a>
       </div>
     </section>
     <footer class="footer">3〜4文字をランダムに抽選。文字の順番は変えません。</footer>
@@ -79,6 +84,7 @@
       const result = document.getElementById('result');
       const generateButton = document.getElementById('generate');
       const copyButton = document.getElementById('copy');
+      const shareLink = document.getElementById('share');
       const CLEAN_RE = /[\p{White_Space}\p{Punctuation}\p{Symbol}]/gu;
       const SMALL_RE = /^[ぁぃぅぇぉゃゅょゎァィゥェォャュョヮヵヶー]$/u;
       const TSU_RE = /^[っッ]$/u;
@@ -125,6 +131,25 @@
         return true;
       });
 
+      // Create an editable X draft, truncating only the shared text (not the input).
+      const updateShareLink = () => {
+        if (!currentResult) {
+          shareLink.removeAttribute('href');
+          shareLink.setAttribute('aria-disabled', 'true');
+          shareLink.classList.add('is-disabled');
+          return;
+        }
+        const original = source.value.replace(/\s+/g, ' ').trim();
+        const units = Array.from(original);
+        const excerpt = units.length > 70 ? units.slice(0, 70).join('') + '…' : original;
+        const message = '「' + excerpt + '」→「' + currentResult + '」\n#略称メーカー';
+        const url = 'https://x.com/intent/tweet?text=' + encodeURIComponent(message)
+          + '&url=' + encodeURIComponent('https://ryakusho-maker.vercel.app/');
+        shareLink.href = url;
+        shareLink.removeAttribute('aria-disabled');
+        shareLink.classList.remove('is-disabled');
+      };
+
       const displayFromChars = chars => {
         if (chars.length < 3) {
           currentResult = '';
@@ -132,6 +157,7 @@
           result.classList.add('is-placeholder');
           generateButton.disabled = true;
           copyButton.disabled = true;
+          updateShareLink();
           return;
         }
         const prior = currentResult;
@@ -150,6 +176,7 @@
         result.classList.remove('is-placeholder');
         generateButton.disabled = false;
         copyButton.disabled = false;
+        updateShareLink();
       };
 
       function generate() {
